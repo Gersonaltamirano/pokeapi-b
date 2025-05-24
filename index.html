@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adivina el Pokémon</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #pokemon-image {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #ffcb05;
+            border: 2px solid #3d7dca;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Adivina el Pokémon</h1>
+    <div id="pokemon-image"></div>
+    <input type="text" id="guess-input" placeholder="Escribe tu respuesta">
+    <button onclick="checkGuess()">Adivinar</button>
+    <p id="message"></p>
+    <p id="hint"></p>
+    <p id="hint2"></p>
+    <p id="hint3"></p>
+    <p id="hint4"></p>
+    
+    <script>
+        let pokemonActual = {};
+        let intentos = 0;
+        
+        // Cargar un Pokémon aleatorio al iniciar
+        window.onload = cargarPokemonAleatorio;
+        
+        async function cargarPokemonAleatorio() {
+            // Limpiar datos anteriores
+            document.getElementById('message').textContent = '';
+            document.getElementById('hint').textContent = '';
+            document.getElementById('hint2').textContent = '';
+            document.getElementById('hint3').textContent = '';
+            document.getElementById('hint4').textContent = '';
+            document.getElementById('guess-input').value = '';
+            intentos = 0;
+            
+            // Obtener un ID aleatorio (primeras 150 generaciones)
+            const pokemonId = Math.floor(Math.random() * 30) + 1;
+            
+            try {
+                const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
+                const data = await response.json();
+                
+                pokemonActual = {
+                    name: data.name,
+                    image: data.sprites.other.dream_world.front_default || data.sprites.front_default,
+                    types: data.types.map(t => t.type.name)  //array
+                };
+                
+                // Mostrar imagen (oscura al principio)
+                const imgElement = document.getElementById('pokemon-image');
+                imgElement.innerHTML = `<img src="${pokemonActual.image}" style="width: 200px; height: 200px">`;
+                
+                // Dar primera pista
+                document.getElementById('hint').textContent = `Tipo(s): ${pokemonActual.types.join(' / ')}`;
+                document.getElementById('hint2').textContent = `el Nombre empieza por: ${pokemonActual.name.charAt(0).toUpperCase()}`;
+                document.getElementById('hint3').textContent = `el Nombre Termin por: ${pokemonActual.name.charAt
+                (pokemonActual.name.length - 1).toUpperCase()}`;
+
+                document.getElementById('hint4').textContent = `el Nombre tiene : ${pokemonActual.name.length} letras`;
+                
+            } catch (error) {
+                console.error('Error al cargar Pokémon:', error);
+                document.getElementById('message').textContent = 'Error al cargar Pokémon. Intenta de nuevo.';
+            }
+        }
+        
+        function checkGuess() {
+            const guessInput = document.getElementById('guess-input');
+            const userGuess = guessInput.value.trim().toLowerCase();
+            const messageElement = document.getElementById('message');
+            const imgElement = document.getElementById('pokemon-image');
+            
+            if (!userGuess) {
+                messageElement.textContent = 'Por favor, escribe un nombre de Pokémon';
+                return;
+            }
+            
+            intentos++;
+
+            if(intentos > 5) {
+                messageElement.textContent = `Has agotado tus intentos. El Pokémon era ${pokemonActual.name}.`;
+                imgElement.innerHTML = `<img src="${pokemonActual.image}" style="width: 200px; height: 200px">`;
+                return;
+            }
+            
+            if (userGuess === pokemonActual.name) {
+                // Mostrar imagen completa
+                imgElement.innerHTML = `<img src="${pokemonActual.image}" style="width: 200px; height: 200px">`;
+                messageElement.textContent = `¡Correcto! Es ${pokemonActual.name}. Adivinaste en ${intentos} intentos.`;
+                // Cargar nuevo Pokémon después de 3 segundos
+                setTimeout(cargarPokemonAleatorio, 3000);
+            } else {
+                messageElement.textContent = 'Incorrecto. Intenta de nuevo.';
+                
+                // Revelar un poco más la imagen con cada intento
+                const brightness = Math.min(0.2 * intentos, 1);
+                imgElement.querySelector('img').style.filter = `brightness(${brightness})`;
+            }
+        }
+    </script>
+</body>
+</html>
